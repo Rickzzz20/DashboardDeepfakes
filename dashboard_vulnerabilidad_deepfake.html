@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Ejecutivo — Vulnerabilidad Victimológica frente a Deepfakes en el Perú</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg:       #07101C;
+    --surface:  #0D1B2A;
+    --card:     #112236;
+    --border:   #1C3050;
+    --accent:   #E05A2B;
+    --safe:     #2EC4B6;
+    --warn:     #F4A261;
+    --critical: #EF233C;
+    --text:     #EEF2F7;
+    --muted:    #7B96B2;
+    --mono:     'Space Mono', monospace;
+    --sans:     'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0 0 48px 0;
+  }
+
+  .topbar {
+    background: linear-gradient(135deg, #0D1B2A 0%, #112236 100%);
+    border-bottom: 2px solid var(--accent);
+    padding: 18px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text); }
+  .topbar-title span { color: var(--accent); }
+  .topbar-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); display: flex; gap: 24px; flex-wrap: wrap; }
+  .topbar-meta strong { color: var(--warn); }
+
+  .filter-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-bar label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  .filter-bar select {
+    font-family: var(--mono); font-size: 12px;
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 12px; border-radius: 6px;
+    cursor: pointer; outline: none;
+    transition: border-color .2s;
+  }
+  .filter-bar select:hover { border-color: var(--accent); }
+  .filter-count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .filter-count strong { color: var(--safe); }
+
+  .tabs-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    transition: color .15s, border-color .15s, background .15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab-btn .tab-num {
+    font-size: 9px;
+    background: rgba(123,150,178,.15);
+    color: var(--muted);
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .tab-btn:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-btn.active .tab-num { background: var(--accent); color: #07101C; }
+  .tab-btn .tab-pts { font-size: 9px; color: var(--warn); font-weight: 400; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .main { max-width: 1400px; margin: 0 auto; padding: 24px 32px; }
+
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-tag {
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    padding: 4px 10px; border-radius: 4px;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+  .tag-s  { background: rgba(46,196,182,.12); color: var(--safe);     border: 1px solid rgba(46,196,182,.3); }
+  .tag-c  { background: rgba(239,35,60,.12);  color: var(--critical); border: 1px solid rgba(239,35,60,.3); }
+  .tag-r  { background: rgba(244,162,97,.12); color: var(--warn);     border: 1px solid rgba(244,162,97,.3); }
+  .tag-ml { background: rgba(224,90,43,.12);  color: var(--accent);   border: 1px solid rgba(224,90,43,.3); }
+  .tag-n  { background: rgba(123,150,178,.12);color: var(--muted);    border: 1px solid rgba(123,150,178,.3); }
+  .section-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .section-sub   { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  @media(max-width:900px){ .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 22px 16px; position: relative; overflow: hidden;
+    transition: transform .15s, border-color .2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+  .kpi-card.red::before   { background: var(--critical); }
+  .kpi-card.orange::before{ background: var(--accent);   }
+  .kpi-card.teal::before  { background: var(--safe);     }
+  .kpi-card.yellow::before{ background: var(--warn);     }
+
+  .kpi-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+  .kpi-value { font-family: var(--mono); font-size: 36px; font-weight: 700; line-height: 1; }
+  .kpi-value.red    { color: var(--critical); }
+  .kpi-value.orange { color: var(--accent);   }
+  .kpi-value.teal   { color: var(--safe);     }
+  .kpi-value.yellow { color: var(--warn);     }
+  .kpi-unit  { font-size: 14px; font-weight: 400; margin-left: 2px; }
+  .kpi-delta { display: inline-block; margin-top: 8px; font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+  .kpi-delta.bad  { background: rgba(239,35,60,.15); color: var(--critical); }
+  .kpi-delta.ok   { background: rgba(46,196,182,.15); color: var(--safe); }
+  .kpi-delta.warn { background: rgba(244,162,97,.15); color: var(--warn); }
+  .kpi-desc { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+  .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .chart-grid-3 { display: grid; grid-template-columns: 1.1fr 1fr 0.9fr; gap: 14px; margin-bottom: 14px; }
+  @media(max-width:900px){ .chart-grid-2,.chart-grid-3 { grid-template-columns: 1fr; } }
+
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .chart-card-title { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+  .chart-card-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; }
+
+  .trend-toggles { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .trend-pill {
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    padding: 6px 12px; border-radius: 16px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); transition: all .15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .trend-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .trend-pill.on { color: var(--text); border-color: currentColor; }
+  .trend-pill:hover { color: var(--text); }
+
+  .heat-table { width: 100%; border-collapse: collapse; }
+  .heat-table td, .heat-table th { padding: 7px 10px; font-size: 12px; text-align: center; border: 1px solid var(--border); }
+  .heat-table th { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; background: var(--surface); }
+  .heat-table td:first-child { text-align: left; color: var(--text); font-weight: 600; font-size: 11px; }
+  .heat-0  { background: rgba(46,196,182,.08);  color: var(--safe); }
+  .heat-1  { background: rgba(244,162,97,.10);  color: var(--warn); }
+  .heat-2  { background: rgba(224,90,43,.18);   color: var(--accent); }
+  .heat-3  { background: rgba(239,35,60,.22);   color: var(--critical); }
+
+  .shap-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .shap-label { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 230px; flex-shrink: 0; text-align: right; }
+  .shap-bar-wrap { flex: 1; background: rgba(255,255,255,.05); border-radius: 4px; height: 14px; overflow: hidden; }
+  .shap-bar { height: 100%; border-radius: 4px; transition: width .5s; }
+  .shap-val { font-family: var(--mono); font-size: 11px; color: var(--text); width: 42px; flex-shrink: 0; }
+
+  .scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .scenario-card { border-radius: 12px; padding: 24px 26px; display: flex; flex-direction: column; gap: 14px; }
+  .scenario-card.bad  { background: rgba(239,35,60,.07);  border: 1px solid rgba(239,35,60,.25); }
+  .scenario-card.good { background: rgba(46,196,182,.07); border: 1px solid rgba(46,196,182,.25); }
+  .scenario-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; }
+  .scenario-card.bad  .scenario-label { color: var(--critical); }
+  .scenario-card.good .scenario-label { color: var(--safe); }
+  .scenario-title { font-size: 16px; font-weight: 700; }
+  .scenario-stat  { font-family: var(--mono); }
+  .scenario-stat .big { font-size: 32px; font-weight: 700; }
+  .scenario-card.bad  .big { color: var(--critical); }
+  .scenario-card.good .big { color: var(--safe); }
+  .scenario-stat .small { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; }
+  .scenario-points { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .scenario-points li { font-size: 12px; color: var(--muted); display: flex; gap: 8px; }
+  .scenario-points li::before { content: '→'; flex-shrink: 0; }
+  .scenario-card.bad  .scenario-points li::before { color: var(--critical); }
+  .scenario-card.good .scenario-points li::before { color: var(--safe); }
+
+  .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 14px; }
+  .metric-cell { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .metric-cell-class { font-family: var(--mono); font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+  .metric-cell-class.muy_alto { color: var(--critical); }
+  .metric-cell-class.alto     { color: var(--accent); }
+  .metric-cell-class.medio    { color: var(--warn); }
+  .metric-cell-class.bajo     { color: var(--safe); }
+  .metric-cell-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+  .metric-cell-row span:last-child { font-family: var(--mono); color: var(--text); }
+  .metric-accent { color: var(--warn) !important; }
+
+  .kpi-table { width: 100%; border-collapse: collapse; }
+  .kpi-table th { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); text-align: left; }
+  .kpi-table td { padding: 10px 14px; font-size: 12px; border: 1px solid var(--border); color: var(--text); }
+  .kpi-table td:nth-child(3), .kpi-table td:nth-child(4) { font-family: var(--mono); }
+  .kpi-table tr td:nth-child(4) { color: var(--safe); }
+  .kpi-number { font-family: var(--mono); font-weight: 700; color: var(--warn); }
+
+  .narrative-block {
+    background: linear-gradient(135deg, #0D1B2A 0%, #112236 100%);
+    border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px;
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 0; margin-bottom: 20px;
+  }
+  @media(max-width:900px){ .narrative-block { grid-template-columns: 1fr; gap: 24px; } }
+  .narrative-col { padding: 0 24px; position: relative; }
+  .narrative-col + .narrative-col::before { content: ''; position: absolute; left: 0; top: 10%; bottom: 10%; width: 1px; background: var(--border); }
+  @media(max-width:900px){ .narrative-col + .narrative-col::before { display:none; } }
+  .narrative-col:first-child { padding-left: 0; }
+  .narrative-col:last-child  { padding-right: 0; }
+  .narrative-tag { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .narrative-tag .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .nt-s .dot { background: var(--safe);     }
+  .nt-c .dot { background: var(--critical); }
+  .nt-r .dot { background: var(--warn);     }
+  .nt-s { color: var(--safe);     }
+  .nt-c { color: var(--critical); }
+  .nt-r { color: var(--warn);     }
+  .narrative-text { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .narrative-text strong { color: var(--text); }
+
+  .prompt-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px 26px; margin-bottom: 14px; }
+  .prompt-title { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; }
+  .prompt-grid { display: grid; grid-template-columns: 120px 1fr; gap: 0; }
+  .prompt-key { font-family: var(--mono); font-size: 11px; font-weight: 700; padding: 8px 14px 8px 0; color: var(--warn); border-right: 1px solid var(--border); text-align: right; line-height: 1.5; }
+  .prompt-val { font-size: 12px; color: var(--muted); padding: 8px 0 8px 14px; line-height: 1.6; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .prompt-val strong { color: var(--text); }
+  .prompt-grid .prompt-key:last-of-type, .prompt-grid .prompt-val:last-child { border-bottom: none; }
+
+  .roles-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media(max-width:900px){ .roles-grid { grid-template-columns: 1fr; } }
+  .role-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .role-name { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--warn); text-transform: uppercase; margin-bottom: 8px; }
+  .role-focus{ font-size: 11px; color: var(--muted); margin-bottom: 8px; font-style: italic; }
+  .role-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .role-text strong { color: var(--text); }
+
+  .dash-footer {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 16px 32px; display: flex; justify-content: space-between;
+    align-items: center; font-family: var(--mono); font-size: 10px;
+    color: var(--muted); flex-wrap: wrap; gap: 8px;
+    max-width: 100%; margin-top: 32px;
+  }
+  .dash-footer strong { color: var(--accent); }
+
+  .semaforo { display: inline-flex; align-items: center; gap: 5px; }
+  .sem-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .sem-rojo    { background: var(--critical); }
+  .sem-amarillo{ background: var(--warn); }
+  .sem-verde   { background: var(--safe); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">Dashboard Ejecutivo · <span>Vulnerabilidad Victimológica frente a Deepfakes</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">Ley N° 32314 · Análisis y Visualización de Datos · USIL 2026-1</div>
+  </div>
+  <div class="topbar-meta">
+    <span>N = <strong>1,500</strong> encuestados</span>
+    <span>Período: <strong>Mayo 2026</strong></span>
+    <span>Herramienta: <strong>Python + React/HTML</strong></span>
+    <span>Autor: <strong>Carlo Mario Peñaloza</strong></span>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <label>Filtrar por:</label>
+  <label>Región:</label>
+  <select id="f-region" onchange="applyFilters()">
+    <option value="all">Todas</option>
+    <option value="lima_metropolitana">Lima Metropolitana</option>
+    <option value="sierra_sur">Sierra Sur</option>
+    <option value="selva">Selva</option>
+    <option value="costa_norte">Costa Norte</option>
+    <option value="sierra_centro">Sierra Centro</option>
+  </select>
+  <label>Grupo etario:</label>
+  <select id="f-edad" onchange="applyFilters()">
+    <option value="all">Todos</option>
+    <option value="18-24">18–24 años</option>
+    <option value="25-34">25–34 años</option>
+    <option value="35-44">35–44 años</option>
+    <option value="45-54">45–54 años</option>
+    <option value="55-64">55–64 años</option>
+    <option value="65+">65+ años</option>
+  </select>
+  <label>NSE:</label>
+  <select id="f-nse" onchange="applyFilters()">
+    <option value="all">Todos</option>
+    <option value="A">A</option>
+    <option value="B">B</option>
+    <option value="C">C</option>
+    <option value="D">D</option>
+    <option value="E">E</option>
+  </select>
+  <div class="filter-count">Mostrando <strong id="n-showing">1,500</strong> registros</div>
+</div>
+
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="showTab('tab-s', this)"><span class="tab-num">1</span> Situación <span class="tab-pts">5pts</span></button>
+  <button class="tab-btn" onclick="showTab('tab-c', this)"><span class="tab-num">2</span> Complicación <span class="tab-pts">4pts</span></button>
+  <button class="tab-btn" onclick="showTab('tab-pred', this)"><span class="tab-num">3</span> Predictivo <span class="tab-pts">6pts</span></button>
+  <button class="tab-btn" onclick="showTab('tab-narr', this)"><span class="tab-num">4</span> Narrativa S→C→R <span class="tab-pts">3pts</span></button>
+  <button class="tab-btn" onclick="showTab('tab-iag', this)"><span class="tab-num">5</span> IAG / REACT <span class="tab-pts">2pts</span></button>
+</div>
+
+<div class="main">
+
+<div id="tab-s" class="tab-panel active">
+
+<div class="section-header">
+  <span class="section-tag tag-s">S · Situación</span>
+  <span class="section-title">Análisis Descriptivo: ¿Dónde estamos?</span>
+  <span class="section-sub">Ítem 1 — Dashboard Descriptivo con 4 KPIs y 2 Visualizaciones</span>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card red">
+    <div class="kpi-label">Exposición Crítica (Alto + Muy Alto)</div>
+    <div class="kpi-value red" id="kpi-exposicion">49.9<span class="kpi-unit">%</span></div>
+    <span class="kpi-delta bad" id="kpi-exp-delta">▲ 5.5 pp vs meta &lt;44%</span>
+    <div class="kpi-desc">1 de cada 2 ciudadanos digitales está en zona de riesgo severo frente a fraudes sintéticos.</div>
+  </div>
+  <div class="kpi-card orange">
+    <div class="kpi-label">Score Vulnerabilidad Promedio</div>
+    <div class="kpi-value orange" id="kpi-score">51.5<span class="kpi-unit">/100</span></div>
+    <span class="kpi-delta warn" id="kpi-score-delta">▼ Meta: ≤45.0</span>
+    <div class="kpi-desc">Nivel medio-alto. Ciudadanos con conocimiento bajo (score ≤2/5) superan el índice 65+ de promedio.</div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-label">Victimización Directa por IA Generativa</div>
+    <div class="kpi-value red" id="kpi-victimas">10.6<span class="kpi-unit">%</span></div>
+    <span class="kpi-delta bad" id="kpi-vic-delta">▲ 50.9% tuvo intento</span>
+    <div class="kpi-desc">159 víctimas directas. Solo el 27.7% presentó denuncia formal ante autoridades.</div>
+  </div>
+  <div class="kpi-card yellow">
+    <div class="kpi-label">Score Conocimiento Ciberseguridad</div>
+    <div class="kpi-value yellow" id="kpi-conocimiento">2.27<span class="kpi-unit">/5</span></div>
+    <span class="kpi-delta warn" id="kpi-con-delta">▼ Meta: ≥3.5/5 (−35% riesgo)</span>
+    <div class="kpi-desc">Correlación con vulnerabilidad: −0.879. Factor más importante del modelo predictivo.</div>
+  </div>
+</div>
+
+<div class="chart-grid-2">
+  <div class="chart-card">
+    <div class="chart-card-title">El 50% de la Población Digital Peruana Opera en Zona de Riesgo Severo</div>
+    <div class="chart-card-sub">Distribución del Nivel de Vulnerabilidad por Segmento Conductual · n = <span id="n-seg">1,500</span></div>
+    <div class="chart-wrap" style="height:280px;">
+      <canvas id="chartSegmento"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-title">Tres Indicadores Escalan en Paralelo durante Mayo 2026</div>
+    <div class="chart-card-sub">Tendencia semanal · Selecciona las series a comparar</div>
+    <div class="trend-toggles">
+      <span class="trend-pill on" id="pill-critico" onclick="toggleTrend('critico')"><span class="dot" style="background:#EF233C"></span>% Riesgo Crítico</span>
+      <span class="trend-pill on" id="pill-conocimiento" onclick="toggleTrend('conocimiento')"><span class="dot" style="background:#F4A261"></span>Score Conocimiento (×10)</span>
+      <span class="trend-pill on" id="pill-denuncia" onclick="toggleTrend('denuncia')"><span class="dot" style="background:#2EC4B6"></span>Tasa Denuncia</span>
+    </div>
+    <div class="chart-wrap" style="height:230px;">
+      <canvas id="chartTendencia"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="chart-grid-2">
+  <div class="chart-card">
+    <div class="chart-card-title">Adultos Mayores y NSE Bajo: Zona de Máxima Exposición</div>
+    <div class="chart-card-sub">% en nivel ALTO o MUY ALTO por Grupo Etario · Calor = Urgencia de Intervención</div>
+    <table class="heat-table" id="heatTable">
+      <thead>
+        <tr>
+          <th>Grupo Etario</th>
+          <th><span class="semaforo"><span class="sem-dot sem-verde"></span>Bajo</span></th>
+          <th><span class="semaforo"><span class="sem-dot sem-amarillo"></span>Medio</span></th>
+          <th><span class="semaforo"><span class="sem-dot" style="background:var(--accent)"></span>Alto</span></th>
+          <th><span class="semaforo"><span class="sem-dot sem-rojo"></span>Muy Alto</span></th>
+        </tr>
+      </thead>
+      <tbody id="heatBody"></tbody>
+    </table>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-title">Clonación de Voz Lidera los Ataques; WhatsApp es la Vía Principal</div>
+    <div class="chart-card-sub">Distribución de Tipos de Fraude IA reportados · n = 820 con intento/víctima</div>
+    <div class="chart-wrap" style="height:270px;">
+      <canvas id="chartTipoFraude"></canvas>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div id="tab-c" class="tab-panel">
+
+<div class="section-header">
+  <span class="section-tag tag-c">C · Complicación</span>
+  <span class="section-title">Hallazgo Crítico, Objetivo SMART y KPIs Ejecutivos</span>
+  <span class="section-sub">Ítem 2 — Análisis de la Brecha y Formalización Ejecutiva</span>
+</div>
+
+<div class="chart-grid-2" style="margin-bottom:14px;">
+  <div class="chart-card" style="border-color: rgba(239,35,60,.3);">
+    <div class="chart-card-title" style="color:var(--critical);">⚠ Hallazgo Crítico con Datos</div>
+    <div class="chart-card-sub">Resultado del análisis descriptivo · Magnitud y Urgencia</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.75;margin-bottom:12px;">
+      El <strong style="color:var(--text);">49.9% de la población digital encuestada</strong> (748 de 1,500 ciudadanos) presenta un nivel de vulnerabilidad
+      alto o muy alto frente a fraudes informáticos mediante deepfakes, con un <strong style="color:var(--text);">score promedio de 51.5/100</strong>.
+    </p>
+    <p style="font-size:13px;color:var(--muted);line-height:1.75;">
+      El <strong style="color:var(--text);">score de conocimiento en ciberseguridad promedia apenas 2.27 sobre 5</strong>, con una correlación negativa de −0.879
+      respecto al riesgo. Si no se actúa, la tasa de victimización (10.6%) proyecta <strong style="color:var(--critical);">3.17 millones de víctimas en 12 meses</strong>,
+      equivalentes a <strong style="color:var(--critical);">S/ 3.03 mil millones</strong> en pérdidas económicas a nivel nacional.
+    </p>
+  </div>
+
+  <div class="chart-card" style="border-color: rgba(244,162,97,.3);">
+    <div class="chart-card-title" style="color:var(--warn);">🎯 Objetivo SMART</div>
+    <div class="chart-card-sub">Específico · Medible · Alcanzable · Relevante · Temporal</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.75;padding:12px 14px;background:rgba(244,162,97,.06);border-radius:8px;border:1px solid rgba(244,162,97,.15);font-style:italic;">
+      "Reducir el <strong style="color:var(--text);">% de ciudadanos en nivel de riesgo alto + muy alto</strong> de <strong style="color:var(--warn);">49.9%</strong> a
+      <strong style="color:var(--safe);">≤ 32%</strong> antes del <strong style="color:var(--text);">31 de diciembre de 2027</strong>,
+      medido trimestralmente mediante reencuesta estandarizada, bajo responsabilidad conjunta del
+      <strong style="color:var(--text);">Ministerio de Justicia y la Secretaría de Gobierno Digital</strong>,
+      mediante el despliegue del clasificador de vulnerabilidad en canales bancarios y plataformas
+      digitales de los segmentos críticos."
+    </p>
+  </div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-card-title">KPIs Ejecutivos Asociados al Objetivo SMART</div>
+  <div class="chart-card-sub">Fórmula simplificada · Valor actual del dataset · Meta estratégica</div>
+  <table class="kpi-table" style="margin-top:8px;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>KPI Ejecutivo</th>
+        <th>Fórmula / Descripción</th>
+        <th>Valor Actual</th>
+        <th>Meta 2027</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="kpi-number">01</span></td>
+        <td>Tasa de Exposición Crítica</td>
+        <td>% (nivel_vulnerabilidad ∈ {alto, muy_alto}) / N encuestados</td>
+        <td><span class="kpi-number">49.9%</span></td>
+        <td style="color:var(--safe);font-family:var(--mono);">≤ 32%</td>
+      </tr>
+      <tr>
+        <td><span class="kpi-number">02</span></td>
+        <td>Score de Conocimiento Ciberseguridad</td>
+        <td>Promedio score_conocimiento (0–5) sobre muestra representativa</td>
+        <td><span class="kpi-number">2.27 / 5</span></td>
+        <td style="color:var(--safe);font-family:var(--mono);">≥ 3.5 / 5</td>
+      </tr>
+      <tr>
+        <td><span class="kpi-number">03</span></td>
+        <td>Tasa de Denuncia Formal</td>
+        <td>% víctimas que denunciaron / total víctimas directas</td>
+        <td><span class="kpi-number">27.7%</span></td>
+        <td style="color:var(--safe);font-family:var(--mono);">≥ 60%</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</div>
+
+<div id="tab-pred" class="tab-panel">
+
+<div class="section-header">
+  <span class="section-tag tag-ml">ML · Modelo</span>
+  <span class="section-title">Análisis Predictivo: Random Forest Classifier</span>
+  <span class="section-sub">Ítem 3 — Modelo Entrenado + Métricas + Escenarios Malo y Prometedor</span>
+</div>
+
+<div class="chart-grid-3">
+  <div class="chart-card">
+    <div class="chart-card-title">Métricas de Evaluación del Modelo</div>
+    <div class="chart-card-sub">Random Forest · 200 árboles · Max Depth 12 · Train/Test 80/20 Estratificado</div>
+    <div style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="background:rgba(46,196,182,.1);border:1px solid rgba(46,196,182,.25);border-radius:8px;padding:10px 16px;text-align:center;flex:1;">
+        <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--safe);">73.0%</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;">Accuracy Global</div>
+      </div>
+      <div style="background:rgba(244,162,97,.1);border:1px solid rgba(244,162,97,.25);border-radius:8px;padding:10px 16px;text-align:center;flex:1;">
+        <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--warn);">0.734</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;">F1 Macro</div>
+      </div>
+      <div style="background:rgba(239,35,60,.1);border:1px solid rgba(239,35,60,.25);border-radius:8px;padding:10px 16px;text-align:center;flex:1;">
+        <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--critical);">0.797</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;">F1 Muy Alto ★</div>
+      </div>
+    </div>
+    <div class="metrics-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="metric-cell">
+        <div class="metric-cell-class muy_alto">RIESGO MUY ALTO</div>
+        <div class="metric-cell-row"><span>Precision</span><span class="metric-accent">0.84</span></div>
+        <div class="metric-cell-row"><span>Recall</span><span class="metric-accent">0.76</span></div>
+        <div class="metric-cell-row"><span>F1-Score</span><span class="metric-accent">0.80</span></div>
+        <div class="metric-cell-row"><span>Support</span><span>75</span></div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-cell-class bajo">RIESGO BAJO</div>
+        <div class="metric-cell-row"><span>Precision</span><span>0.93</span></div>
+        <div class="metric-cell-row"><span>Recall</span><span>0.83</span></div>
+        <div class="metric-cell-row"><span>F1-Score</span><span>0.87</span></div>
+        <div class="metric-cell-row"><span>Support</span><span>75</span></div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-cell-class medio">RIESGO MEDIO</div>
+        <div class="metric-cell-row"><span>Precision</span><span>0.63</span></div>
+        <div class="metric-cell-row"><span>Recall</span><span>0.75</span></div>
+        <div class="metric-cell-row"><span>F1-Score</span><span>0.68</span></div>
+        <div class="metric-cell-row"><span>Support</span><span>75</span></div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-cell-class alto">RIESGO ALTO</div>
+        <div class="metric-cell-row"><span>Precision</span><span>0.58</span></div>
+        <div class="metric-cell-row"><span>Recall</span><span>0.59</span></div>
+        <div class="metric-cell-row"><span>F1-Score</span><span>0.58</span></div>
+        <div class="metric-cell-row"><span>Support</span><span>75</span></div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;font-style:italic;">
+      ★ El F1=0.80 en <strong style="color:var(--critical);">muy_alto</strong> supera el benchmark mínimo ejecutivo (0.75). El Accuracy del 73% es secundario: en política criminal, minimizar falsos negativos en la clase crítica es la métrica relevante.
+    </p>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-title">Explicabilidad SHAP: Factores que Gobiernan el Riesgo</div>
+    <div class="chart-card-sub">Peso de importancia global · Teoría de Juegos Cooperativos · Rompe la Caja Negra</div>
+    <div style="margin-top:12px;" id="shapBars"></div>
+    <p style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6;font-style:italic;border-top:1px solid var(--border);padding-top:10px;">
+      <strong style="color:var(--critical);">score_conocimiento domina</strong> con peso 0.1647, evidenciando que la <strong style="color:var(--text);">alfabetización digital</strong> —no la severidad de la pena— es el verdadero escudo preventivo. Esto refuta empíricamente el paradigma punitivo de la Ley N° 32314.
+    </p>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-title">Score Conocimiento Define el Nivel de Vulnerabilidad</div>
+    <div class="chart-card-sub">Score promedio por nivel · Brecha conocimiento vs vulnerabilidad</div>
+    <div class="chart-wrap" style="height:220px;">
+      <canvas id="chartKnowledge"></canvas>
+    </div>
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Correlación de Pearson</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;background:rgba(255,255,255,.05);border-radius:4px;height:18px;overflow:hidden;position:relative;">
+          <div style="width:87.9%;height:100%;background:linear-gradient(90deg,var(--critical),var(--accent));border-radius:4px;"></div>
+        </div>
+        <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--critical);">−0.879</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;">Correlación negativa muy alta: a mayor conocimiento, menor vulnerabilidad.</div>
+    </div>
+  </div>
+</div>
+
+<div class="scenario-grid">
+  <div class="scenario-card bad">
+    <div class="scenario-label">⚠ Escenario MALO — Sin Intervención</div>
+    <div class="scenario-title">Status Quo: la Ley N° 32314 como único mecanismo</div>
+    <div class="scenario-stat">
+      <span class="big">3.17 M</span>
+      <span class="small">víctimas proyectadas en los próximos 12 meses (crecimiento deepfakes +15% anual)</span>
+    </div>
+    <div class="scenario-stat">
+      <span class="big">S/ 3.03 mil M</span>
+      <span class="small">pérdida patrimonial agregada estimada a nivel nacional</span>
+    </div>
+    <ul class="scenario-points">
+      <li>Score de conocimiento permanece en 2.27/5 promedio sin programa educativo.</li>
+      <li>% riesgo alto+muy_alto escala de 49.9% a ~55% por mayor exposición tecnológica.</li>
+      <li>Tasa de denuncia permanece en 27.7% — la mayoría de víctimas sin reparación.</li>
+      <li>Segmentos adulto mayor y sector vulnerable continúan sin blindaje diferenciado.</li>
+    </ul>
+  </div>
+  <div class="scenario-card good">
+    <div class="scenario-label">✅ Escenario PROMETEDOR — Con Intervención</div>
+    <div class="scenario-title">Despliegue del clasificador + alfabetización digital focalizada</div>
+    <div class="scenario-stat">
+      <span class="big">1.11 M</span>
+      <span class="small">víctimas evitadas · reducción del 35% mediante intervención en segmentos críticos</span>
+    </div>
+    <div class="scenario-stat">
+      <span class="big">S/ 1.06 mil M</span>
+      <span class="small">pérdida evitada — retorno social estimado de la inversión en educación digital</span>
+    </div>
+    <ul class="scenario-points">
+      <li>Score conocimiento sube de 2.27 a ≥3.5 en segmentos críticos mediante micro-capacitaciones.</li>
+      <li>% riesgo alto+muy_alto cae de 49.9% a ≤32% para diciembre 2027 (meta SMART).</li>
+      <li>Clasificador integrado en banca móvil activa 2FA físico obligatorio en perfiles críticos.</li>
+      <li>Tasa de denuncia aumenta a ≥60% con canal digital de reporte simplificado.</li>
+    </ul>
+  </div>
+</div>
+
+</div>
+
+<div id="tab-narr" class="tab-panel">
+
+<div class="section-header">
+  <span class="section-tag tag-n">SCR · Narrativa</span>
+  <span class="section-title">Narrativa Ejecutiva Integrada: Situación → Complicación → Resolución</span>
+  <span class="section-sub">Ítem 4 — Cuadro narrativo para el Gerente de Área · Audiencia: no técnica</span>
+</div>
+
+<div class="narrative-block">
+  <div class="narrative-col">
+    <div class="narrative-tag nt-s"><span class="dot"></span>S — Situación</div>
+    <p class="narrative-text">
+      Al cierre de mayo de 2026, el Perú registra <strong>1,500 ciudadanos digitales encuestados</strong>,
+      de los cuales el <strong>49.9%</strong> opera en zona de riesgo severo (nivel alto o muy alto)
+      con un score de vulnerabilidad promedio de <strong>51.5 sobre 100</strong>.
+      La clonación de voz concentra el <strong>38%</strong> de los ataques por IA generativa, y WhatsApp
+      es la vía de ingreso en el <strong>44%</strong> de los intentos. Solo el <strong>40.1%</strong> de la
+      población conoce qué es un deepfake y apenas el <strong>20.1%</strong> usa autenticación de doble factor.
+    </p>
+  </div>
+  <div class="narrative-col">
+    <div class="narrative-tag nt-c"><span class="dot"></span>C — Complicación</div>
+    <p class="narrative-text">
+      El score de conocimiento en ciberseguridad promedia <strong>2.27 sobre 5</strong>, con una
+      correlación negativa de <strong>−0.879</strong> respecto al riesgo: el factor decisivo no es la
+      amenaza de cárcel, sino la alfabetización digital. La <strong>Ley N° 32314</strong> endurece penas
+      ex-post cuando el daño ya ocurrió, sin tocar este vector. Sin intervención, la proyección a
+      12 meses asciende a <strong>3.17 millones de víctimas</strong> y pérdidas de
+      <strong>S/ 3.03 mil millones</strong>. Los segmentos 65+ (53.3% en riesgo muy alto) y NSE E
+      (43.9%) son los más críticos y los menos atendidos por la política pública vigente.
+    </p>
+  </div>
+  <div class="narrative-col">
+    <div class="narrative-tag nt-r"><span class="dot"></span>R — Resolución</div>
+    <p class="narrative-text">
+      El clasificador Random Forest (F1=<strong>0.80</strong> en la clase crítica) permite identificar
+      perfiles de riesgo antes de que ocurra el fraude. Se recomienda integrarlo en canales bancarios
+      móviles para activar <strong>2FA físico obligatorio</strong> en perfiles críticos, y lanzar un
+      programa de alfabetización digital focalizado en adultos mayores y NSE D–E.
+      Con esta intervención, el riesgo crítico caerá de <strong>49.9% a ≤32%</strong> para diciembre 2027,
+      evitando <strong>1.11 millones de víctimas</strong> y <strong>S/ 1.06 mil millones</strong> en pérdidas,
+      bajo responsabilidad del Ministerio de Justicia y la Secretaría de Gobierno Digital.
+    </p>
+  </div>
+</div>
+
+</div>
+
+<div id="tab-iag" class="tab-panel">
+
+<div class="section-header">
+  <span class="section-tag tag-ml">IAG · Calidad</span>
+  <span class="section-title">Calidad Técnica: Uso de IAG con Framework REACT</span>
+  <span class="section-sub">Ítem 5A — Prompt REACT + Comparativo de Roles (2 pts)</span>
+</div>
+
+<div class="prompt-card">
+  <div class="prompt-title">Prompt Diseñado con Framework REACT para Generar la Narrativa S→C→R</div>
+  <div class="prompt-grid">
+    <div class="prompt-key">ROL</div>
+    <div class="prompt-val"><strong>Actúa como Gerente de Política Criminal del Ministerio de Justicia y Derechos Humanos del Perú</strong>, con especialización en crimen cibernético y gestión de riesgos digitales. Tu audiencia son directivos que toman decisiones de política pública sin formación técnica en IA.</div>
+    <div class="prompt-key">EVIDENCIA</div>
+    <div class="prompt-val">Dataset de <strong>1,500 encuestados</strong> (mayo 2026). Hallazgos clave: (1) 49.9% en riesgo alto o muy alto. (2) Score conocimiento promedio: 2.27/5. (3) Correlación conocimiento–vulnerabilidad: −0.879. (4) Clonación de voz: 38% de ataques. (5) Victimización directa: 10.6%. (6) Tasa de denuncia: 27.7%. (7) Proyección sin intervención: 3.17M víctimas, S/ 3.03 mil millones en pérdidas. (8) Con intervención: reducción del 35%, meta ≤32% de exposición crítica al 2027.</div>
+    <div class="prompt-key">ACCIÓN</div>
+    <div class="prompt-val">Redacta una <strong>narrativa ejecutiva S→C→R</strong> de 3 párrafos (máximo 60 palabras cada uno). Cada párrafo debe incluir al menos 3 cifras concretas del análisis. El párrafo de Resolución debe mencionar un plazo, un responsable y una métrica de éxito. Evita tecnicismos de machine learning.</div>
+    <div class="prompt-key">CONTEXTO</div>
+    <div class="prompt-val">La narrativa se integrará en un <strong>dashboard ejecutivo</strong> presentado al Comité de Seguridad Digital del Consejo de Ministros. El tiempo de lectura disponible es de 90 segundos. La decisión que se debe motivar es la <strong>aprobación del presupuesto para el despliegue del clasificador de vulnerabilidad</strong> en el ecosistema bancario digital.</div>
+    <div class="prompt-key">TONO</div>
+    <div class="prompt-val"><strong>Ejecutivo, directo y orientado a la acción.</strong> No alarmista, pero con urgencia clara. Lenguaje de política pública: "ciudadanos en riesgo", "inversión preventiva", "responsabilidad del Estado". Sin ecuaciones ni jerga de data science.</div>
+  </div>
+</div>
+
+<div class="roles-grid">
+  <div class="role-card">
+    <div class="role-name">Rol 1: Gerente de Política Criminal</div>
+    <div class="role-focus">"¿Cómo protegemos al ciudadano y asignamos recursos?"</div>
+    <p class="role-text">
+      La narrativa enfatiza <strong>la magnitud poblacional del riesgo</strong> y la urgencia de una respuesta
+      estatal coordinada. Prioriza cifras de victimización (<strong>10.6%</strong>, <strong>3.17M proyectadas</strong>)
+      y la baja tasa de denuncia (<strong>27.7%</strong>). La Resolución se centra en presupuesto, responsables
+      institucionales y plazos concretos. Tono: defensa del ciudadano.
+    </p>
+  </div>
+  <div class="role-card">
+    <div class="role-name">Rol 2: Director de Operaciones Bancarias</div>
+    <div class="role-focus">"¿Qué implica esto para el riesgo operacional del sistema financiero?"</div>
+    <p class="role-text">
+      La narrativa cambia el foco hacia <strong>las pérdidas patrimoniales</strong> (<strong>S/ 3.03 mil millones</strong>)
+      y el impacto reputacional para el sector. Resalta que el <strong>44% de ataques usa WhatsApp</strong>
+      y que el clasificador activa 2FA en perfiles críticos como control de riesgo interno. Tono: gestión
+      de riesgo operacional, regulatorio y de imagen.
+    </p>
+  </div>
+  <div class="role-card">
+    <div class="role-name">Rol 3: CFO — Director Financiero</div>
+    <div class="role-focus">"¿Cuál es el retorno de la inversión preventiva?"</div>
+    <p class="role-text">
+      La narrativa reformula el problema en términos de <strong>ROI social</strong>: invertir en el clasificador
+      y en alfabetización evita <strong>S/ 1.06 mil millones</strong> en pérdidas y <strong>1.11 millones de víctimas</strong>.
+      La Resolución presenta el costo/beneficio explícitamente. Omite el detalle técnico del modelo y enfatiza
+      el costo de la inacción. Tono: racional, cuantitativo, comparativo.
+    </p>
+  </div>
+</div>
+
+<div class="chart-card" style="border-color:rgba(123,150,178,.2);">
+  <div class="chart-card-title" style="color:var(--muted);">¿Qué cambió al modificar el ROL del prompt?</div>
+  <p style="font-size:13px;color:var(--muted);line-height:1.75;margin-top:8px;">
+    Al cambiar de <strong style="color:var(--text);">Gerente de Política Criminal</strong> a <strong style="color:var(--text);">CFO</strong>,
+    la narrativa generada eliminó referencias a segmentos poblacionales vulnerables y protección de derechos, y
+    sustituyó el lenguaje de "deber del Estado" por el de "costo de la inacción vs. retorno de la inversión".
+    Esto demuestra que el <strong style="color:var(--text);">ROL del prompt es la variable más sensible del framework REACT</strong>:
+    define la audiencia, el ángulo del hallazgo y el tipo de acción que se motiva, sin cambiar los datos de base.
+  </p>
+</div>
+
+</div>
+
+</div>
+
+<div class="dash-footer">
+  <span>USIL · Facultad de Ingeniería e Inteligencia Artificial · Análisis y Visualización de Datos · Ciclo <strong>2026-1</strong></span>
+  <span>Autor: <strong>Carlo Mario Peñaloza Cosmópolis</strong></span>
+  <span>Dataset: DENUNCIAs_Vulnerabilidad_a_deepfake.xlsx · N=1,500 · Mayo 2026</span>
+  <span>Herramienta: <strong>Python + HTML/JS (Chart.js)</strong> · Dr. José Herrera</span>
+</div>
+
+<script>
+function showTab(tabId, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+const DATA = {
+  segmentos: {
+    labels: ['Sector Vulnerable Digital','Joven Hiperconectado','Adulto Productivo','Adulto Mayor Desconectado','Educado Precavido'],
+    bajo:     [3,  12, 32,  2, 65],
+    medio:    [17, 38, 28,  7, 32],
+    alto:     [35, 35, 22, 36,  3],
+    muy_alto: [45, 15, 18, 55,  0],
+  },
+
+  tendencia: {
+    labels: ['Sem 18\n(1–5 may)','Sem 19\n(6–12 may)','Sem 20\n(13–19 may)','Sem 21\n(20–26 may)','Sem 22\n(27–31 may)'],
+    pct_critico:    [47.2, 49.6, 48.0, 50.3, 53.6],
+    conocimiento:   [2.28, 2.30, 2.32, 2.30, 2.13],
+    tasa_denuncia:  [23.5, 31.2, 29.3, 21.2, 30.6],
+  },
+
+  heatEtario: [
+    { grupo:'18–24 años',  bajo:5.5,  medio:39.1, alto:38.2, muy_alto:17.3 },
+    { grupo:'25–34 años',  bajo:26.9, medio:30.2, alto:22.0, muy_alto:20.8 },
+    { grupo:'35–44 años',  bajo:37.5, medio:27.4, alto:18.2, muy_alto:16.9 },
+    { grupo:'45–54 años',  bajo:39.8, medio:20.8, alto:18.2, muy_alto:21.2 },
+    { grupo:'55–64 años',  bajo:27.9, medio:11.7, alto:22.1, muy_alto:38.3 },
+    { grupo:'65+ años',    bajo:0.0,  medio:7.8,  alto:38.9, muy_alto:53.3 },
+  ],
+
+  tipoFraude: {
+    labels: ['Clonación de Voz','Suplantación Chat','Publicidad Falsa','Video Manipulado','Imagen Falsa','Deepfake Íntimo'],
+    values: [312,174,122,102,66,44]
+  },
+
+  scoreXnivel: {
+    labels: ['Muy Alto','Alto','Medio','Bajo'],
+    scores: [0.9, 1.8, 2.8, 4.2],
+  },
+
+  shap: [
+    { name: 'score_conocimiento',       val: 0.1647, color: '#EF233C' },
+    { name: 'anios_internet',           val: 0.0875, color: '#E05A2B' },
+    { name: 'edad',                     val: 0.0498, color: '#F4A261' },
+    { name: 'horas_diarias_internet',   val: 0.0478, color: '#F4A261' },
+    { name: 'publica_videos_publicos',  val: 0.0400, color: '#7B96B2' },
+    { name: 'conoce_2fa',               val: 0.0395, color: '#7B96B2' },
+    { name: 'verifica_remitente',       val: 0.0389, color: '#7B96B2' },
+    { name: 'conoce_phishing',          val: 0.0324, color: '#7B96B2' },
+    { name: 'nse',                      val: 0.0300, color: '#2EC4B6' },
+    { name: 'crt_score',                val: 0.0291, color: '#2EC4B6' },
+  ],
+
+  byRegion: {
+    all:                { vic: 10.6, score: 51.5, conocimiento: 2.27, critico: 49.9, n: 1500 },
+    lima_metropolitana: { vic: 9.8,  score: 50.2, conocimiento: 2.41, critico: 47.5, n: 580 },
+    sierra_sur:         { vic: 12.1, score: 53.8, conocimiento: 2.05, critico: 53.2, n: 197 },
+    selva:              { vic: 11.4, score: 52.9, conocimiento: 2.12, critico: 51.8, n: 190 },
+    costa_norte:        { vic: 10.1, score: 51.0, conocimiento: 2.28, critico: 49.2, n: 179 },
+    sierra_centro:      { vic: 11.8, score: 53.1, conocimiento: 2.09, critico: 52.6, n: 170 },
+  },
+  byEdad: {
+    all:   { vic: 10.6, score: 51.5, conocimiento: 2.27, critico: 49.9, n: 1500 },
+    '18-24': { vic: 7.3,  score: 54.1, conocimiento: 2.8,  critico: 55.5, n: 220 },
+    '25-34': { vic: 9.4,  score: 48.0, conocimiento: 2.7,  critico: 42.8, n: 427 },
+    '35-44': { vic: 11.2, score: 49.2, conocimiento: 2.5,  critico: 35.1, n: 296 },
+    '45-54': { vic: 12.5, score: 52.8, conocimiento: 2.1,  critico: 39.4, n: 236 },
+    '55-64': { vic: 13.0, score: 55.1, conocimiento: 1.8,  critico: 60.4, n: 154 },
+    '65+':   { vic: 15.0, score: 63.2, conocimiento: 1.1,  critico: 92.2, n: 167 },
+  },
+};
+
+const C = Chart;
+const gridColor  = 'rgba(255,255,255,.06)';
+const tickColor  = '#7B96B2';
+const fontFamily = "'Space Mono', monospace";
+
+function baseOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: tickColor, font: { family: fontFamily, size: 10 }, boxWidth: 12 } },
+      tooltip: { bodyFont: { family: fontFamily }, titleFont: { family: fontFamily } }
+    }
+  };
+}
+
+const chartSeg = new C(document.getElementById('chartSegmento').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: DATA.segmentos.labels.map(l => l.split(' ').slice(0,2).join(' ')),
+    datasets: [
+      { label: 'Bajo',     data: DATA.segmentos.bajo,     backgroundColor: 'rgba(46,196,182,.8)',  stack:'s' },
+      { label: 'Medio',    data: DATA.segmentos.medio,    backgroundColor: 'rgba(244,162,97,.8)',  stack:'s' },
+      { label: 'Alto',     data: DATA.segmentos.alto,     backgroundColor: 'rgba(224,90,43,.85)',  stack:'s' },
+      { label: 'Muy Alto', data: DATA.segmentos.muy_alto, backgroundColor: 'rgba(239,35,60,.9)',   stack:'s' },
+    ]
+  },
+  options: {
+    ...baseOpts(),
+    scales: {
+      x: { stacked:true, grid:{ color:gridColor }, ticks:{ color:tickColor, font:{family:fontFamily,size:9} } },
+      y: { stacked:true, max:100, grid:{ color:gridColor }, ticks:{ color:tickColor, font:{family:fontFamily,size:10}, callback: v => v+'%' } }
+    },
+    plugins: { ...baseOpts().plugins, legend:{ ...baseOpts().plugins.legend, position:'top' } }
+  }
+});
+
+let chartTendencia = new C(document.getElementById('chartTendencia').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: DATA.tendencia.labels,
+    datasets: [
+      {
+        id: 'critico',
+        label: '% Riesgo Crítico',
+        data: DATA.tendencia.pct_critico,
+        borderColor: '#EF233C', backgroundColor: 'rgba(239,35,60,.08)',
+        fill: true, tension: 0.4, pointRadius: 4,
+        pointBackgroundColor: '#EF233C', pointBorderColor: '#07101C', pointBorderWidth: 2,
+        yAxisID: 'y'
+      },
+      {
+        id: 'conocimiento',
+        label: 'Score Conocimiento (×10)',
+        data: DATA.tendencia.conocimiento.map(v => v*10),
+        borderColor: '#F4A261', backgroundColor: 'transparent',
+        fill: false, tension: 0.4, pointRadius: 4,
+        pointBackgroundColor: '#F4A261', pointBorderColor: '#07101C', pointBorderWidth: 2,
+        yAxisID: 'y'
+      },
+      {
+        id: 'denuncia',
+        label: 'Tasa Denuncia',
+        data: DATA.tendencia.tasa_denuncia,
+        borderColor: '#2EC4B6', backgroundColor: 'transparent',
+        fill: false, tension: 0.4, pointRadius: 4, borderDash: [4,3],
+        pointBackgroundColor: '#2EC4B6', pointBorderColor: '#07101C', pointBorderWidth: 2,
+        yAxisID: 'y'
+      }
+    ]
+  },
+  options: {
+    ...baseOpts(),
+    scales: {
+      x: { grid:{ color:gridColor }, ticks:{ color:tickColor, font:{family:fontFamily,size:9} } },
+      y: { min:0, max:60, grid:{ color:gridColor }, ticks:{ color:tickColor, font:{family:fontFamily,size:10}, callback: v=>v+'%' } }
+    },
+    plugins: { ...baseOpts().plugins, legend: { display:false } }
+  }
+});
+
+function toggleTrend(id) {
+  const dsIndex = chartTendencia.data.datasets.findIndex(d => d.id === id);
+  const pill = document.getElementById('pill-' + id);
+  const meta = chartTendencia.getDatasetMeta(dsIndex);
+  meta.hidden = meta.hidden === null ? !chartTendencia.data.datasets[dsIndex].hidden : !meta.hidden;
+  pill.classList.toggle('on');
+  chartTendencia.update();
+}
+
+function heatClass(val) {
+  if (val < 15) return 'heat-0';
+  if (val < 30) return 'heat-1';
+  if (val < 45) return 'heat-2';
+  return 'heat-3';
+}
+const heatBody = document.getElementById('heatBody');
+DATA.heatEtario.forEach(row => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${row.grupo}</td>
+    <td class="${heatClass(row.bajo)}">${row.bajo.toFixed(1)}%</td>
+    <td class="${heatClass(row.medio)}">${row.medio.toFixed(1)}%</td>
+    <td class="${heatClass(row.alto)}">${row.alto.toFixed(1)}%</td>
+    <td class="${heatClass(row.muy_alto)}">${row.muy_alto.toFixed(1)}%</td>
+  `;
+  heatBody.appendChild(tr);
+});
+
+new C(document.getElementById('chartTipoFraude').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: DATA.tipoFraude.labels,
+    datasets: [{
+      data: DATA.tipoFraude.values,
+      backgroundColor: ['#EF233C','#E05A2B','#F4A261','#7B96B2','#2EC4B6','#4361EE'],
+      borderColor: '#07101C', borderWidth: 2, hoverOffset: 8
+    }]
+  },
+  options: {
+    ...baseOpts(),
+    cutout: '60%',
+    plugins: { ...baseOpts().plugins, legend: { ...baseOpts().plugins.legend, position:'right' } }
+  }
+});
+
+const shapContainer = document.getElementById('shapBars');
+const maxVal = DATA.shap[0].val;
+DATA.shap.forEach(f => {
+  const pct = (f.val / maxVal * 100).toFixed(1);
+  const div = document.createElement('div');
+  div.className = 'shap-row';
+  div.innerHTML = `
+    <div class="shap-label">${f.name}</div>
+    <div class="shap-bar-wrap"><div class="shap-bar" style="width:${pct}%;background:${f.color};"></div></div>
+    <div class="shap-val">${f.val.toFixed(4)}</div>
+  `;
+  shapContainer.appendChild(div);
+});
+
+new C(document.getElementById('chartKnowledge').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: DATA.scoreXnivel.labels,
+    datasets: [{
+      label: 'Score Conocimiento',
+      data: DATA.scoreXnivel.scores,
+      backgroundColor: ['rgba(239,35,60,.8)','rgba(224,90,43,.8)','rgba(244,162,97,.8)','rgba(46,196,182,.8)'],
+    }]
+  },
+  options: {
+    ...baseOpts(),
+    scales: {
+      x: { grid:{ color:gridColor }, ticks:{ color:tickColor, font:{family:fontFamily,size:10} } },
+      y: { min:0, max:5, grid:{ color:gridColor }, ticks:{ color:tickColor, font:{family:fontFamily,size:10} } }
+    },
+    plugins: { ...baseOpts().plugins, legend:{ display:false } }
+  }
+});
+
+function applyFilters() {
+  const region = document.getElementById('f-region').value;
+  const edad   = document.getElementById('f-edad').value;
+
+  let d;
+  if (region !== 'all') d = DATA.byRegion[region];
+  else if (edad !== 'all') d = DATA.byEdad[edad];
+  else d = DATA.byRegion['all'];
+
+  const n = d.n;
+  document.getElementById('n-showing').textContent = n.toLocaleString('es-PE');
+  document.getElementById('n-seg').textContent = n.toLocaleString('es-PE');
+
+  document.getElementById('kpi-exposicion').innerHTML = d.critico.toFixed(1) + '<span class="kpi-unit">%</span>';
+  document.getElementById('kpi-score').innerHTML       = d.score.toFixed(1) + '<span class="kpi-unit">/100</span>';
+  document.getElementById('kpi-victimas').innerHTML    = d.vic.toFixed(1) + '<span class="kpi-unit">%</span>';
+  document.getElementById('kpi-conocimiento').innerHTML= d.conocimiento.toFixed(2) + '<span class="kpi-unit">/5</span>';
+
+  const expDelta = document.getElementById('kpi-exp-delta');
+  if (d.critico > 49) { expDelta.textContent = `▲ ${(d.critico-44).toFixed(1)} pp vs meta <44%`; expDelta.className='kpi-delta bad'; }
+  else { expDelta.textContent = `▼ dentro del rango objetivo`; expDelta.className='kpi-delta ok'; }
+}
+</script>
+</body>
+</html>
